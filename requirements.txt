@@ -1,0 +1,4 @@
+python-docx
+spacy
+docx2pdf
+fpdf2

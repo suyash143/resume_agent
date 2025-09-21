@@ -176,7 +176,6 @@ batch_optimized_20241222_143022/
 ### For Maximum ATS Score
 1. **Use DOCX files** for online applications (better parsing)
 2. **Use PDF files** for email submissions (consistent formatting)
-3. **Test with ATS scanners** like Jobscan or Resume Worded
 4. **Customize per job** - different jobs need different keywords
 
 ### File Management

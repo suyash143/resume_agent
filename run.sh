@@ -5,7 +5,7 @@ echo "===================================="
 
 # Check if virtual environment exists
 if [ ! -d ".venv" ]; then
-    echo "📦 Creating virtual environment with Python 3.10..."
+    echo "Creating virtual environment with Python 3.10..."
     python3.10 -m venv .venv
 fi
 

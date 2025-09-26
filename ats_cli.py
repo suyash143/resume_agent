@@ -6,7 +6,7 @@ Interactive command-line interface for optimizing resumes
 
 import os
 import sys
-from ats_optimizer import analyze_job_description, inject_invisible_keywords, extract_smart_keywords
+from ats_optimizer import analyze_job_description, inject_invisible_keywords, extract_smart_keywords, extract_missing_keywords_llm
 
 def get_user_input():
     """Get job description from user input"""
@@ -77,6 +77,16 @@ def select_resume():
         print("❌ Please enter a number!")
         return None
 
+def select_strategy():
+    """Select keyword extraction strategy"""
+    print("\nKeyword Extraction Strategy:")
+    print("1. Default (spaCy-based, current)")
+    print("2. LLM-based (extract only missing, important keywords)")
+    choice = input("Select strategy (1-2, default 1): ").strip()
+    if choice == "2":
+        return "llm-keyword-inject"
+    return "default"
+
 def main():
     """Main CLI function"""
     try:
@@ -90,13 +100,13 @@ def main():
             f.write(jd_text)
         print("✅ Job description saved to job_description.txt")
         
-        # Analyze job description
-        keywords = analyze_job_description(jd_text)
-        
         # Select resume
         resume_file = select_resume()
         if not resume_file:
             return
+        
+        # Select strategy
+        strategy = select_strategy()
         
         # Configure output
         output_dir = "optimized_resume"
@@ -106,6 +116,17 @@ def main():
         
         # Ask about PDF generation
         generate_pdf = input("\n📄 Generate PDF version? (y/n): ").lower().startswith('y')
+        
+        # Extract keywords based on strategy
+        if strategy == "llm-keyword-inject":
+            with open(resume_file, "rb") as f:
+                import docx
+                doc = docx.Document(f)
+                resume_text = "\n".join([p.text for p in doc.paragraphs])
+            keywords = extract_missing_keywords_llm(jd_text, resume_text)
+            print(f"\n🔑 LLM-extracted missing keywords: {', '.join(keywords[:10])}")
+        else:
+            keywords = analyze_job_description(jd_text)
         
         # Process resume
         print(f"\n🔄 Processing resume: {resume_file}")

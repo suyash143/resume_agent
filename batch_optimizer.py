@@ -7,7 +7,7 @@ Process multiple job descriptions at once
 import os
 import json
 from datetime import datetime
-from ats_optimizer import analyze_job_description, inject_invisible_keywords
+from ats_optimizer import analyze_job_description, inject_invisible_keywords, extract_missing_keywords_llm
 
 def create_job_batch():
     """Create a batch of job descriptions"""
@@ -63,7 +63,16 @@ def load_batch(filename="job_batch.json"):
             return json.load(f)
     return []
 
-def process_batch(jobs, resume_file):
+def select_strategy():
+    print("\nKeyword Extraction Strategy:")
+    print("1. Default (spaCy-based, current)")
+    print("2. LLM-based (extract only missing, important keywords)")
+    choice = input("Select strategy (1-2, default 1): ").strip()
+    if choice == "2":
+        return "llm-keyword-inject"
+    return "default"
+
+def process_batch(jobs, resume_file, strategy="default"):
     """Process all jobs in batch"""
     if not jobs:
         print("❌ No jobs to process!")
@@ -77,12 +86,22 @@ def process_batch(jobs, resume_file):
     
     results = []
     
+    # Read resume text once if LLM strategy
+    resume_text = None
+    if strategy == "llm-keyword-inject":
+        import docx
+        doc = docx.Document(resume_file)
+        resume_text = "\n".join([p.text for p in doc.paragraphs])
+    
     for i, job in enumerate(jobs, 1):
         print(f"\n📋 Processing {i}/{len(jobs)}: {job['company']} - {job['position']}")
         
         try:
-            # Extract keywords for this job
-            keywords = analyze_job_description(job['description'])
+            if strategy == "llm-keyword-inject":
+                keywords = extract_missing_keywords_llm(job['description'], resume_text)
+                print(f"   🔑 LLM-extracted missing keywords: {', '.join(keywords[:10])}")
+            else:
+                keywords = analyze_job_description(job['description'])
             
             # Create job-specific output files
             safe_company = "".join(c for c in job['company'] if c.isalnum() or c in (' ', '-', '_')).strip()
@@ -197,7 +216,8 @@ def main():
         
         # Process batch
         if input(f"\nProcess {len(jobs)} jobs with {resume_file}? (y/n): ").lower().startswith('y'):
-            process_batch(jobs, resume_file)
+            strategy = select_strategy()
+            process_batch(jobs, resume_file, strategy)
         
     except KeyboardInterrupt:
         print("\n\n👋 Goodbye!")

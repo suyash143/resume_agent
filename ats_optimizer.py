@@ -219,7 +219,7 @@ if __name__ == "__main__":
         # Define paths
         input_resume = "Suyash_Pathak_Resume.docx"
         output_dir = "optimized_resume"
-        output_docx = f"{output_dir}/Suyash_Pathak_ATS_Optimized.docx"
+        output_docx = f"{output_dir}/Suyash_Pathak_resume.docx"
         output_pdf = f"{output_dir}/Suyash_Pathak_ATS_Optimized.pdf"
         
         # Process resume

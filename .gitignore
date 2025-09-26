@@ -3,3 +3,7 @@
 *.pdf
 job_description.txt
 test_jd.txt
+*.env
+__pycache__/
+debug_prompt.txt
+debug_response.json

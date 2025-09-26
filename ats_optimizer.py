@@ -8,6 +8,9 @@ import os
 import re
 from collections import Counter
 import xml.etree.ElementTree as ET
+import requests
+from dotenv import load_dotenv
+load_dotenv()
 
 # Load spaCy model for keyword extraction
 def load_spacy_model():
@@ -204,6 +207,54 @@ def analyze_job_description(jd_text):
         print(f"   • Soft skills: {', '.join(soft_skills[:3])}")
     
     return keywords
+
+def extract_missing_keywords_llm(jd_text, resume_text, max_keywords=50):
+    """
+    Use a free LLM API to extract the most important keywords from the job description
+    that are NOT present in the resume. Returns a list of missing keywords.
+    """
+    API_URL = "https://router.huggingface.co/v1/chat/completions"
+    hf_token = os.environ.get("HF_TOKEN")
+    print("[DEBUG] HF_TOKEN in env:", repr(hf_token))  # Debug print
+    if not hf_token:
+        print("[LLM API] Error: HuggingFace token not found in environment variable 'HF_TOKEN'.")
+        print("[LLM API] TIP: Make sure you export HF_TOKEN in the same shell session and run the script from that shell. Try: export HF_TOKEN=your_token && python ats_cli.py")
+        return []
+    headers = {"Authorization": f"Bearer {hf_token}"}
+    prompt = (
+        "Job Description:\n" + jd_text.strip() +
+        "\n\nResume:\n" + resume_text.strip() +
+        "\n\nExtract the most important keywords from the job description that are NOT present in the resume. "
+        "Return only the missing keywords as a comma-separated list."
+    )
+    #export prompt to a file for debugging
+    with open("debug_prompt.txt", "w", encoding='utf-8') as f:
+        f.write(prompt)
+    print("[LLM API] Prompt written to debug_prompt.txt")
+    payload = {
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "model": "moonshotai/Kimi-K2-Instruct-0905:groq"
+    }
+    try:
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+        response.raise_for_status()
+        result = response.json()
+        with open("debug_response.json", "w", encoding='utf-8') as f:
+            import json
+            json.dump(result, f, indent=2)
+        print("[LLM API] Response written to debug_response.json")
+        # Extract the content from the first choice
+        content = result["choices"][0]["message"]["content"]
+        print(f"[LLM API] Extracted keywords: {content}")
+        keywords = [kw.strip() for kw in content.split(',') if kw.strip()]
+
+        return keywords[:max_keywords]
+    except Exception as e:
+        print(f"[LLM API] Error extracting keywords: {e}")
+        return []
+
 if __name__ == "__main__":
     print("🚀 Smart ATS Resume Optimizer")
     print("=" * 40)
